@@ -2,7 +2,9 @@
 Machine Learning repository
 
 ## This repository is used to publish the project assignment for Machine Learning.
-## A link to the published HTML document is here and can also be found in the index.html document:  http://rpubs.com/gdjrpub01/Machine_Learning_Project 
+## A link to the published HTML document is here:  http://rpubs.com/gdjrpub01/Machine_Learning_Project 
+
+## The link can also be found in the index.html document in the gh-pages branch.
 
 ##Executive Summary:
 ## Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to  collect a large amount of data about personal activity relatively inexpensively.  One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, my goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants who were asked to perform barbell lifts correctly and incorrectly in 5 different ways.
