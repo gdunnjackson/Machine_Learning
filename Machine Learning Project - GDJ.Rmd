@@ -1,0 +1,97 @@
+---
+title: "Machine Learning Project"
+author: "Gloria Jackson"
+date: "May 26, 2016"
+output: html_document
+---
+
+##Executive Summary:
+## Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to  collect a large amount of data about personal activity relatively inexpensively.  One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, my goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants who were asked to perform barbell lifts correctly and incorrectly in 5 different ways.
+  
+## The goal of my project is to predict the manner in which they did the exercise using the "classe" variable in the training set.  I may use any of the other variables to predict with. I will describe how I built my model, how I used cross validation, what I think the expected out of sample error is, and why I made the choices I did. 
+
+## Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: exactly according to the specification (Class A), throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D) and throwing the hips to the front (Class E).
+
+## Class A corresponds to the specified execution of the exercise, while the other 4 classes correspond to common mistakes. Participants were supervised by an experienced weight lifter to make sure the execution complied to the manner they were supposed to simulate. The exercises were performed by six male participants aged between 20-28 years, with little weight lifting experience. We made sure that all participants could easily simulate the mistakes in a safe and controlled manner by using a relatively light dumbbell (1.25kg).
+  
+  
+## Download data from Web (commented out to prevent re-run)
+```{r,echo=TRUE}
+## fileUrl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv?accessType=Download"
+## download.file(fileUrl,destfile = "./pml-training.csv",method="curl")
+## dateDownloaded <- date()
+## fileUrl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv?accessType=Download"
+## download.file(fileUrl,destfile = "./pml-testing.csv",method="curl")
+## dateDownloaded <- date()
+```
+## Load libraries and read in the data files downloaded from internet
+```{r,echo=TRUE}
+##  load libraries
+library(AppliedPredictiveModeling, quietly=TRUE)
+library(ElemStatLearn, quietly=TRUE) 
+library(caret, quietly=TRUE)
+library(pgmm, quietly=TRUE)
+library(rpart, quietly=TRUE)
+library(gbm, quietly=TRUE)
+library(lubridate, quietly=TRUE)
+library(forecast, quietly=TRUE)
+library(e1071, quietly=TRUE)
+## Source Files (commented reading of local files)
+training = read.csv("/Users/gloriajackson/pml-training.csv",na.strings = c('NA','#DIV/0!',''))
+testing  = read.csv("/Users/gloriajackson/pml-testing.csv",na.strings = c('NA','#DIV/0!',''))
+```
+
+##  Analysis:
+##  After exploring the data and researching the data definition at http://groupware.les.inf.puc-rio.br/har, I decided to bypass the first 7 fields because they are probably irrelevant for use in the prediction model. The rest of the columns are cast as numeric except the last column (classe), which the prediction model will use.  I also found that the last column in the testing dataset will need to be renamed from 'problem_id' to 'classe' before running the prediction on the testing dataset so that all columns will be compatible.
+
+```{r,echo=TRUE}
+for(i in c(8:ncol(training)-1)) {
+training[,i] = as.numeric(as.character(training[,i])) 
+testing[,i] = as.numeric(as.character(testing[,i]))
+}
+```
+## Create filters to obtain a good set of data to use in the prediction model in later steps.
+```{r,echo=TRUE}
+filter_d <- colnames(training)
+filter_d <- colnames(training[colSums(is.na(training)) == 0])
+filter_d <- filter_d[-c(1:7)]
+```
+##  Split the training and testing data into 80% and 20%, respectively.  Set the seed to assure same results with repeated tests.  Use the filters to pull the correct variables into the model (excluding the NA's, etc.).  Set up the training dataset and cross-validation dataset.
+
+```{r,echo=TRUE}
+set.seed(3000)
+filter_train <- createDataPartition(y=training$classe, p=0.80, list=FALSE)
+train_data <- training[filter_train,filter_d]
+cross_val_data <- training[-filter_train,filter_d]
+dim(train_data); dim(cross_val_data)
+str(train_data); str(cross_val_data)
+```
+## Graph the classe variable to help determine model selection
+```{r,echo=TRUE}
+histogram(~classe,train_data)
+```
+
+## I decided to use the Random Forest model after diagram of the data shows that the classes don't vary that much, and the Random Forest model should optimize for accuracy and have a low out of sample error. Next steps are to run the Random Forest model against the training data, run the prediction and cross validation.  
+```{r,echo=TRUE}
+rf_model <- train(classe ~ .,data = train_data,method = 'rf',
+trControl = trainControl(method = "cv",number = 4,allowParallel = TRUE,verboseIter = TRUE))
+rf_pred <- predict(rf_model,cross_val_data)
+rf_cm <- confusionMatrix(rf_pred,cross_val_data$classe)
+```
+##  View the results of the confusionMatrix
+```{r,echo=TRUE}
+rf_cm
+```
+##  The accuracy of the model is 0.9959. The out of sample error is 0.0041. The out of sample error is calculated as 1 - accuracy for predictions made against the cross-validation set. This is a good ratio for using the model against the test data that has 20 samples. 
+
+##Next, I'll run the prediction model on the testing data set after I rename the last column in the testing dataset(problem_id) to be 'classe'.  The column names need to be consistent between the training and testing dataset. 
+##
+```{r,echo=TRUE}
+last_column <- length(colnames(testing[]))
+colnames(testing)[last_column] <- 'classe'
+rf_testing <- predict(rf_model,testing[,filter_d])
+```
+## CONCLUSION:  Display the results of the Random Forest prediction on the testing dataset
+```{r,echo=TRUE}
+rf_testing
+```
